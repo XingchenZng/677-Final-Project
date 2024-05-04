@@ -1,0 +1,308 @@
+---
+title: "677 Final Project"
+author: "Xingchen Zhang"
+output: pdf_document
+date: "2024-05-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Introduction
+This report focuses on two important methods that have changed the way statisticians work with data: the James-Stein Estimator and Ridge Regression. These approaches use a technique called shrinkage, which means they intentionally add a little bias to improve the overall accuracy of the estimates. This is a big shift from older methods like Maximum Likelihood Estimation (MLE), which aims to be completely unbiased but can struggle with many variables.
+
+
+The James-Stein Estimator, created by Charles Stein in 1961, showed that sometimes an estimator with a little bias can actually perform better overall, especially in terms of error. This idea started a new way of thinking about how to balance bias and accuracy, leading to the development of more methods like it.
+
+
+Ridge Regression came about in the 1970s, introduced by Hoerl and Kennard, to tackle issues in regression analysis such as multicollinearity (when variables are too closely related) and the challenge of having too many variables. By applying a penalty to the size of the coefficients in the regression, Ridge Regression makes models more understandable and accurate, which is particularly helpful when there are more variables than data points to support them.
+
+
+In this report, I will talk about the basics, historical background, and importance of these methods. We will see how they make statistical analysis stronger and more dependable, especially today, when we often face very complicated data situations.
+
+# James–Stein Estimation
+
+The James-Stein estimator is a classic example of a shrinkage estimator, which leverages the strength of pulling estimates toward a central value to reduce the overall estimation error, particularly in settings where multiple parameters are estimated simultaneously. This method is named after Charles Stein and Willard James, who introduced it in 1961.
+
+
+In statistics, especially in high-dimensional data settings, estimating a large number of parameters simultaneously often leads to high variance. High variance means that the estimates may vary widely across different samples, reducing the reliability of these estimates. The James-Stein estimator addresses this by shrinking the individual estimates towards a common mean, effectively reducing the variance of the estimates at the cost of introducing a small bias.
+
+
+The original James-Stein estimator is designed for estimating the means of multiple normal distributions with known variance and where the means are assumed to be close to each other. The estimator demonstrates that for three or more parameters, the James-Stein estimator dominates the traditional maximum likelihood estimator (MLE) — it has lower mean squared error (MSE) — meaning it offers a better trade-off between bias and variance.
+
+
+Consider \( p \) independent observations \( X_i \) from normal distributions \( N(\theta_i, 1) \). The MLE for \( \theta_i \) is simply \( X_i \). The James-Stein estimator modifies this by shrinking each \( X_i \) towards the overall mean \( \overline{X} \):
+
+\[
+\hat{\theta}_{JS} = \left(1 - \frac{(p-2)}{\sum_{i=1}^p (X_i - \overline{X})^2}\right)X_i + \frac{(p-2)}{\sum_{i=1}^p (X_i - \overline{X})^2} \overline{X}
+\]
+
+
+Where:
+- \( \hat{\theta}_{JS} \) is the James-Stein estimate.
+- \( p \) is the number of parameters.
+- \( \overline{X} \) is the mean of the observations.
+
+
+This formula shows how each observation \( X_i \) is shrunk towards the overall mean \( \overline{X} \), reducing individual variation.
+
+**When to Use James-Stein Estimation?**
+The estimator is particularly useful when:
+- The parameters to be estimated are numerous and not overly distinct.
+- The assumption of normality is reasonable.
+- The underlying true parameters are believed to be close to each other.
+
+**Limitations**
+- It assumes a known variance, which is rarely the case in practice.
+- It performs poorly if the true parameters are very different from each other, as it tends to pull outliers towards the mean, potentially obscuring significant variations.
+
+If we use R to do a simple James Stein Estimator:
+
+```{r}
+james_stein_estimator <- function(observations) {
+  n <- length(observations)
+  mean_obs <- mean(observations)
+  sse <- sum((observations - mean_obs)^2)
+  shrinkage_factor <- max(0, 1 - (n-2) / sse)
+  return(shrinkage_factor * observations + (1 - shrinkage_factor) * mean_obs)
+}
+
+set.seed(123)
+observations <- rnorm(10, mean = 5, sd = 1)
+js_estimates <- james_stein_estimator(observations)
+print(js_estimates)
+
+```
+
+```{r}
+library(ggplot2)
+
+james_stein_estimator <- function(observations) {
+  n <- length(observations)
+  mean_obs <- mean(observations)
+  sse <- sum((observations - mean_obs)^2)
+  shrinkage_factor <- max(0, 1 - (n-2) / sse)
+  return(shrinkage_factor * observations + (1 - shrinkage_factor) * mean_obs)
+}
+
+set.seed(123)
+observations <- rnorm(50, mean = 50, sd = 10)
+js_estimates <- james_stein_estimator(observations)
+
+data <- data.frame(
+  Original = observations,
+  James_Stein = js_estimates
+)
+
+ggplot(data, aes(x = Original, y = James_Stein)) +
+  geom_point() +
+  geom_line(aes(x = Original, y = Original), color = "red", linetype = "dashed") +
+  labs(x = "Original Estimates", y = "James-Stein Estimates", title = "Effect of James-Stein Shrinkage")
+
+```
+
+In the James-Stein estimator example, the added plotting functionality helps visualize how the estimates are being shrunk towards the mean, providing a clear visual interpretation of what the estimator is doing.
+
+
+**Historical Context of the James-Stein Estimator**
+
+
+The James-Stein estimator was introduced in 1961 by statisticians Charles Stein and later expanded by James and Stein. This estimator challenged the long-held belief that Maximum Likelihood Estimation (MLE), a popular statistical method for estimating the unknown parameters in a model, was the best choice under all circumstances. MLE was favored because it provided estimates that were straightforward and based on strong mathematical theory. However, it was not perfect, especially when dealing with complex data or when trying to estimate multiple things at once.
+
+
+Before the 1960s, statisticians largely focused on developing theories that worked well under ideal conditions. However, real-world data often do not meet these ideal conditions. They can be messy, incomplete, and highly complex. The James-Stein estimator was part of a broader movement in statistics during the mid-20th century to develop methods that could handle this complexity more effectively.
+
+The introduction of the James-Stein estimator showed that by accepting a small amount of bias—intentionally allowing the estimator to deviate slightly from traditional unbiasedness—you could achieve lower overall errors in your estimates, particularly when estimating several parameters simultaneously. This was a big deal because it offered a way to improve the accuracy of results in practical situations, something that MLE couldn't always achieve.
+
+
+The term "Stein's Paradox," named after Charles Stein, refers to the counterintuitive nature of the James-Stein estimator. The paradox lies in the fact that shrinking estimates toward each other and toward the overall mean—essentially pulling them towards a central point—could result in better overall performance than treating them independently, as MLE does. This was surprising because it went against the traditional statistical doctrine that favored unbiased estimation above all.
+
+This concept was discussed in depth in a 1977 article by Bradley Efron and Carl Morris in "Scientific American," which helped to bring the ideas behind the James-Stein estimator to a wider audience, including non-statisticians. The article explained these ideas in a way that was accessible and highlighted the practical benefits of this new approach.
+
+
+The development of the James-Stein estimator marked a significant turning point in statistical methods, encouraging more flexible and robust approaches to dealing with real-world data. It opened the door to other methods that also prioritize practical effectiveness over strict adherence to theoretical ideals. This approach has influenced countless statistical practices and continues to be relevant as data becomes ever more complex.
+
+In simpler terms, the James-Stein estimator helped statisticians get better results with real-world data by showing that a little compromise on mathematical perfection could lead to more accurate and useful outcomes in real-life scenarios.
+
+
+**Conclusion**
+
+The James-Stein estimator is a powerful tool in the statistician's toolkit for reducing variance in parameter estimates, particularly in complex, high-dimensional datasets. Its use exemplifies a broader principle in statistical estimation: accepting a small bias can lead to significant gains in overall accuracy.
+
+
+Sure, I'll provide a more comprehensive explanation of Ridge Regression, highlighting its concepts, applications, and advantages in a straightforward manner.
+
+# Ridge Regression
+
+
+Ridge Regression, also known as Tikhonov regularization, is a technique used to analyze multiple regression data that suffer from multicollinearity. When variables are highly correlated, small changes in the data can lead to large changes in the model, often resulting in a model with poor predictive performance. This can also make the statistical estimates (the coefficients) very sensitive to changes in the model. Ridge Regression addresses these issues by adding a degree of bias to the regression estimates.
+
+
+Ridge Regression introduces a small amount of bias into the regression estimates by imposing a penalty on the size of the coefficients. This penalty is proportional to the square of the magnitude of the coefficients; this method is therefore also known as L2 regularization. The primary goal here is to minimize the sum of the square of the residuals (as in ordinary least squares regression) plus the square of the magnitude of the coefficients multiplied by a penalty parameter, \( \lambda \).
+
+
+The mathematical formula for Ridge Regression is:
+
+\[
+\hat{\beta}^{ridge} = \arg \min_\beta \left\{ \sum_{i=1}^n (y_i - x_i^T \beta)^2 + \lambda \|\beta\|^2 \right\}
+\]
+
+Where:
+- \( y_i \) is the response variable,
+- \( x_i \) is the predictor,
+- \( \beta \) is the coefficient vector,
+- \( \lambda \) is the penalty term (a non-negative parameter that controls the amount of shrinkage: the larger the value of \( \lambda \), the greater the amount of shrinkage),
+- The notation \( \|\beta\|^2 \) represents the square of the L2 norm of the coefficient vector.
+
+
+The choice of \( \lambda \) is critical in Ridge Regression. If \( \lambda = 0 \), Ridge Regression reduces to ordinary least squares regression. If \( \lambda \) is very large, all coefficients are shrunk towards zero. The penalty term is typically chosen to optimize a particular criterion, often using cross-validation techniques to determine the best \( \lambda \) that minimizes prediction error.
+
+**Advantages**
+- **Stability:** By adding a penalty term, Ridge Regression reduces the variance of the estimates which can significantly improve the performance of the model, especially when the data is multicollinear.
+- **Bias-Variance Tradeoff:** Although Ridge introduces bias, it helps in achieving a better trade-off by reducing the model complexity and preventing overfitting.
+- **Computationally Efficient:** It is computationally efficient to fit, especially for situations where the number of predictors is quite large relative to the number of observations.
+
+**Practical Applications**
+- **Finance:** Predicting prices of stocks where many similar predictors might be collinear, such as various economic indicators.
+- **Healthcare:** In genomic applications or medical statistics where many features are collected for a relatively smaller number of observations.
+- **Marketing:** Predictive analytics where consumer behavior may be influenced by factors that are often highly correlated, like marketing mix elements.
+
+If we explore more with R:
+```{r}
+library(glmnet)
+
+set.seed(123)
+x <- matrix(rnorm(100 * 20), 100, 20) 
+y <- rnorm(100) 
+
+ridge_model <- glmnet(x, y, alpha = 0)
+
+coefs <- as.matrix(coef(ridge_model))
+
+print(coefs[1:6, 1]) 
+
+
+```
+
+
+The code fits a Ridge Regression model to simulated data where both predictors and responses are generated from a normal distribution. This is a simple demonstration of how to use glmnet for Ridge Regression. In practical applications, you would also need to consider how to choose an optimal lambda value, possibly using cross-validation with the cv.glmnet function, and you might need to scale and center your predictors, especially when they are measured on different scales.
+
+
+```{r}
+library(glmnet)
+library(caret)
+
+set.seed(123)
+x <- matrix(rnorm(200 * 20), 200, 20) 
+y <- x %*% rnorm(20) + rnorm(200)
+
+train_indices <- createDataPartition(y, p = 0.8, list = FALSE)
+train_x <- x[train_indices, ]
+train_y <- y[train_indices]
+test_x <- x[-train_indices, ]
+test_y <- y[-train_indices]
+
+set.seed(123)
+cv_ridge <- cv.glmnet(train_x, train_y, alpha = 0, type.measure = "mse", nfolds = 10)
+
+plot(cv_ridge)
+
+best_lambda <- cv_ridge$lambda.min
+ridge_model <- glmnet(x, y, alpha = 0, lambda = best_lambda)
+print(paste("Best Lambda:", best_lambda))
+print("Coefficients:")
+print(coef(ridge_model))
+
+predictions <- predict(ridge_model, s = best_lambda, newx = test_x)
+mse <- mean((test_y - predictions)^2)
+print(paste("Test MSE:", mse))
+
+```
+
+For the Ridge Regression, the use of the caret package for partitioning the data and glmnet for fitting the model with cross-validation is a practical approach to tuning the model in a real-world scenario. This helps in selecting the optimal penalty parameter \( \lambda \) and demonstrates how to evaluate the model's performance on unseen data.
+
+
+
+**Historical Context of Ridge Regression**
+
+
+Ridge Regression was introduced by Arthur E. Hoerl and Robert W. Kennard in the 1970s. It was designed to solve a problem commonly faced in statistics and data analysis known as multicollinearity, where predictor variables in a regression model are highly correlated. This situation can cause problems with Ordinary Least Squares (OLS), the standard method for fitting linear models.
+
+
+OLS is a popular technique used to find the relationship between predictor variables and a response variable. It works well under many conditions, but it starts to falter when the predictor variables are too similar to each other (multicollinearity). In such cases, OLS can produce unstable estimates that vary wildly with small changes in the model or data. This makes it difficult to trust the results, especially when the goal is to understand which variables are truly influencing the response variable.
+
+
+Ridge Regression addresses these issues by introducing a penalty for having large coefficients in the model. In simpler terms, it modifies the method used to fit the linear model so that the resulting predictions are not overly sensitive to changes in the data. This is achieved by adding a penalty term to the usual calculation of OLS that effectively shrinks the coefficients.
+
+
+Imagine you are trying to balance on a seesaw, and it's very sensitive; even a small shift in weight causes big swings. Ridge Regression adds a balancing force that keeps the seesaw movements more controlled and less reactive to small shifts. In statistical terms, this "balancing force" is a penalty that makes the coefficients of the correlated predictors smaller, which in turn stabilizes the model's predictions.
+
+
+The main benefit of Ridge Regression is its ability to produce more reliable and interpretable models, especially in situations where the traditional OLS would fail due to multicollinearity. This reliability is crucial in many fields such as economics, health sciences, and any area where predictive accuracy is essential.
+
+
+The introduction of Ridge Regression marked a significant advancement in statistical methodologies, leading to the development of other types of regularized regression techniques, such as Lasso and Elastic Net, which have built on the foundations laid by Ridge Regression. These methods have become fundamental tools in the era of big data, helping statisticians and data scientists to build robust models in the presence of complex and high-dimensional data sets.
+
+
+Ridge Regression was a groundbreaking development in the 1970s that addressed key limitations of existing statistical methods by introducing a simple yet effective way to stabilize estimates in the presence of multicollinearity. Its creation paved the way for modern approaches in data analysis, emphasizing the importance of regularized methods for reliable prediction and analysis in various applications.
+
+
+**Conclusion**
+
+
+Ridge Regression is a powerful tool for statisticians and data scientists dealing with multicollinearity or when predictive accuracy and generalization to new data are crucial. It efficiently handles issues that arise in multiple regression models where ordinary least squares estimates are unstable and unreliable. By incorporating a penalty parameter, Ridge Regression makes a compromise between bias and variance, often leading to more reliable and robust estimates.
+
+
+# Differences and Similarities
+
+James-Stein Estimator: The primary objective is to improve the estimation accuracy of multiple parameters simultaneously, particularly under the normal distribution assumption. It specifically addresses the problem of estimation risk by introducing bias, which paradoxically leads to a reduction in the overall mean squared error across all estimates.
+
+
+Ridge Regression: Ridge Regression aims to tackle issues related to multicollinearity among predictors in regression models, ensuring stable and reliable coefficient estimation. Its objective is to minimize the potential for overfitting in models with many predictors, enhancing the predictive accuracy.
+
+**Methodologies**
+James-Stein Estimator: This estimator uses a shrinkage approach where estimates are pulled towards the overall mean. The methodology is grounded in Bayesian principles, even though it can be derived without explicitly using Bayesian techniques. It modifies the unbiased maximum likelihood estimates by shrinking them towards each other, thus reducing variance.
+
+
+Ridge Regression: Utilizes L2 regularization, adding a penalty equivalent to the square of the magnitude of the coefficients to the loss function of the linear regression. This penalty term controls the complexity of the model, effectively shrinking the coefficients towards zero but not exactly to zero.
+
+
+**Impact**
+
+James-Stein Estimator: Demonstrated that adding bias can reduce error in certain contexts, challenging traditional statistical thinking about unbiased estimators. Its introduction was a milestone in the development of shrinkage methods and had a profound impact on statistical theory, particularly in how we think about risk minimization.
+
+
+Ridge Regression: Had a significant impact on the fields of machine learning and statistics by providing a robust alternative to ordinary least squares in the presence of multicollinearity. It paved the way for the development of other regularization techniques and is a staple method in the toolkit of data scientists and statisticians.
+
+
+**Similarities**
+
+
+Shrinkage Concept: Both methods apply the concept of shrinkage, albeit in different contexts. James-Stein shrinks estimates towards each other and the mean, while Ridge Regression shrinks the regression coefficients towards zero.
+
+
+Bias-Variance Tradeoff: Each method introduces some bias into the estimates to gain reductions in variance, improving the overall prediction error or estimation risk.
+Regularization: Both can be seen as forms of regularization. They regularize parameter estimates to prevent overfitting and to handle high-dimensional data effectively.
+
+
+**Applicability**
+
+
+When to Prefer James-Stein Estimator:
+Multiple Parameter Estimation: Ideal when estimating several parameters from similar distributions, especially when those parameters are not independent. It's particularly effective in high-dimensional problems where the goal is to estimate means of Gaussian distributions.
+Small Sample Size: Useful in scenarios with small to moderate sample sizes but where many parameters are estimated simultaneously.
+
+
+When to Prefer Ridge Regression:
+Regression Problems with Multicollinearity: Best suited for regression problems where predictors are highly correlated. Ridge helps to reduce the redundancy among the predictors, which stabilizes the estimates of the regression coefficients.
+Large Number of Predictors: Particularly effective when the number of predictors is large or comparable to the number of observations, which is a common scenario in many modern data analysis problems.
+
+
+
+#Reference
+1. Efron, B., and Morris, C. (1977). "Stein's Paradox in Statistics". Scientific American, 236, 119-127.
+
+
+2. Hoerl, A.E., and Kennard, R.W. (1970). "Ridge Regression: Biased Estimation for Nonorthogonal Problems". Technometrics, 12(1), 55-67.
+
+3. Friedman, J., Hastie, T., and Tibshirani, R. (2010). "Regularization Paths for Generalized Linear Models via Coordinate Descent". Journal of Statistical Software, 33(1), 1-22. DOI: 10.18637/jss.v033.i01
